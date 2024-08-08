@@ -1,0 +1,5 @@
+# direnv cache
+/.direnv
+
+# Rust artifacts
+/target
