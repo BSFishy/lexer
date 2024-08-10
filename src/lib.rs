@@ -40,6 +40,7 @@ pub enum Token {
     Else,
     While,
     For,
+    String(String),
     Unknown(char),
     Eof,
 }
@@ -235,6 +236,16 @@ impl<T: Read + 'static> Iterator for Lexer<T> {
             }
             '\n' => Some(Ok(Token::NewLine)),
             ' ' => Some(Ok(Token::Space)),
+            '"' => {
+                let inside = match self.consume_while(|c| c != '"') {
+                    Ok(inside) => inside,
+                    Err(err) => return Some(Err(err)),
+                };
+
+                test!(self.next()?; LexError::from);
+
+                Some(Ok(Token::String(inside)))
+            }
             c if test!(self.match_and_consume(c, "func")) => Some(Ok(Token::Func)),
             c if test!(self.match_and_consume(c, "return")) => Some(Ok(Token::Return)),
             c if test!(self.match_and_consume(c, "let")) => Some(Ok(Token::Let)),
