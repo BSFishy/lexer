@@ -29,6 +29,9 @@ macro_rules! test {
 #[derive(Debug)]
 pub enum Token {
     Comment { contents: String },
+    NewLine,
+    Space,
+    Unknown(char),
     Eof,
 }
 
@@ -140,22 +143,58 @@ impl<T: Read> Lexer<T> {
 
         self.buffer.get(offset - 1).map(|c| Ok(*c))
     }
+
+    fn has_next(&mut self, value: &str) -> bool {
+        for (i, c) in value.chars().enumerate() {
+            let p = self.peek(i + 1);
+            match (c, p) {
+                (c, Some(Ok(p))) if c == p => continue,
+                _ => return false,
+            }
+        }
+
+        true
+    }
+
+    fn consume_until(&mut self, value: char) -> Result<String, LexError> {
+        let mut acc = Vec::new();
+        loop {
+            match self.peek(1) {
+                Some(Ok(c)) if c != value => {
+                    acc.push(self.next().unwrap_or(Ok('\0')).map_err(LexError::from)?);
+                }
+                Some(Ok(_)) => break,
+                Some(Err(e)) => return Err(LexError::from(e)),
+                None => break,
+            }
+        }
+
+        Ok(acc.into_iter().collect())
+    }
 }
 
 impl<T: Read + 'static> Iterator for Lexer<T> {
     type Item = Result<Token, LexError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let c = test!(self.next()?; LexError::from);
+        let next = test!(self.next()?; LexError::from);
+        match next {
+            '/' => {
+                if self.has_next("/") {
+                    test!(self.next()?; LexError::from);
 
-        let _p1 = test!(self.peek(1).unwrap_or(Ok(' ')); LexError::from);
-
-        let _p2 = test!(self.peek(2).unwrap_or(Ok(' ')); LexError::from);
-
-        let _p3 = test!(self.peek(3).unwrap_or(Ok(' ')); LexError::from);
-
-        print!("{c}");
-
-        Some(Ok(Token::Eof))
+                    let contents = self.consume_until('\n');
+                    match contents {
+                        Ok(contents) => Some(Ok(Token::Comment { contents })),
+                        Err(err) => Some(Err(err)),
+                    }
+                } else {
+                    unreachable!();
+                }
+            }
+            '\n' => Some(Ok(Token::NewLine)),
+            ' ' => Some(Ok(Token::Space)),
+            c => Some(Ok(Token::Unknown(c))),
+        }
     }
 }
