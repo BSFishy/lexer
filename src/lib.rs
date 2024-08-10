@@ -29,6 +29,7 @@ macro_rules! test {
 #[derive(Debug)]
 pub enum Token {
     Comment { contents: String },
+    Identifier(String),
     NewLine,
     Space,
     // TODO: keyword token or just like this?
@@ -165,16 +166,19 @@ impl<T: Read> Lexer<T> {
     }
 
     fn consume_until(&mut self, value: char) -> Result<String, LexError> {
+        self.consume_while(|c| c != value)
+    }
+
+    fn consume_while(&mut self, func: impl Fn(char) -> bool) -> Result<String, LexError> {
         let mut acc = Vec::new();
         loop {
             match self.peek(1) {
-                Some(Ok(c)) if c != value => match self.next() {
+                Some(Ok(c)) if func(c) => match self.next() {
                     Some(Ok(c)) => acc.push(c),
                     Some(Err(err)) => return Err(LexError::from(err)),
-                    // we peek at least 1, so we will always get a next
                     None => unreachable!(),
                 },
-                Some(Err(e)) => return Err(LexError::from(e)),
+                Some(Err(err)) => return Err(LexError::from(err)),
                 _ => break,
             }
         }
@@ -238,6 +242,14 @@ impl<T: Read + 'static> Iterator for Lexer<T> {
             c if test!(self.match_and_consume(c, "else")) => Some(Ok(Token::Else)),
             c if test!(self.match_and_consume(c, "while")) => Some(Ok(Token::While)),
             c if test!(self.match_and_consume(c, "for")) => Some(Ok(Token::For)),
+            c if c.is_alphabetic() => {
+                let rest = match self.consume_while(|c| c.is_alphanumeric()) {
+                    Ok(rest) => rest,
+                    Err(err) => return Some(Err(err)),
+                };
+
+                Some(Ok(Token::Identifier(format!("{c}{rest}"))))
+            }
             c => Some(Ok(Token::Unknown(c))),
         }
     }
