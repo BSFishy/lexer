@@ -33,6 +33,12 @@ pub enum Token {
     Space,
     // TODO: keyword token or just like this?
     Func,
+    Return,
+    Let,
+    If,
+    Else,
+    While,
+    For,
     Unknown(char),
     Eof,
 }
@@ -226,6 +232,12 @@ impl<T: Read + 'static> Iterator for Lexer<T> {
             '\n' => Some(Ok(Token::NewLine)),
             ' ' => Some(Ok(Token::Space)),
             c if test!(self.match_and_consume(c, "func")) => Some(Ok(Token::Func)),
+            c if test!(self.match_and_consume(c, "return")) => Some(Ok(Token::Return)),
+            c if test!(self.match_and_consume(c, "let")) => Some(Ok(Token::Let)),
+            c if test!(self.match_and_consume(c, "if")) => Some(Ok(Token::If)),
+            c if test!(self.match_and_consume(c, "else")) => Some(Ok(Token::Else)),
+            c if test!(self.match_and_consume(c, "while")) => Some(Ok(Token::While)),
+            c if test!(self.match_and_consume(c, "for")) => Some(Ok(Token::For)),
             c => Some(Ok(Token::Unknown(c))),
         }
     }
