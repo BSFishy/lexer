@@ -45,6 +45,19 @@ pub enum Token {
     // right now
     Number(String),
     Unknown(char),
+    RParen,
+    LParen,
+    RBracket,
+    LBracket,
+    Semicolon,
+    Add,
+    Sub,
+    AddAssign,
+    SubAssign,
+    Equal,
+    Comma,
+    GT,
+    LT,
     Eof,
 }
 
@@ -239,6 +252,47 @@ impl<T: Read + 'static> Iterator for Lexer<T> {
             }
             '\n' => Some(Ok(Token::NewLine)),
             ' ' => Some(Ok(Token::Space)),
+            '(' => Some(Ok(Token::RParen)),
+            ')' => Some(Ok(Token::LParen)),
+            '{' => Some(Ok(Token::RBracket)),
+            '}' => Some(Ok(Token::LBracket)),
+            ';' => Some(Ok(Token::Semicolon)),
+            ',' => Some(Ok(Token::Comma)),
+            '>' => {
+                if self.has_next("=") {
+                    todo!()
+                } else {
+                    Some(Ok(Token::GT))
+                }
+            }
+            '<' => {
+                if self.has_next("=") {
+                    todo!()
+                } else {
+                    Some(Ok(Token::LT))
+                }
+            }
+            '=' => {
+                if self.has_next("=") {
+                    todo!()
+                } else {
+                    Some(Ok(Token::Equal))
+                }
+            }
+            '+' => {
+                if self.has_next("=") {
+                    Some(Ok(Token::AddAssign))
+                } else {
+                    Some(Ok(Token::Add))
+                }
+            }
+            '-' => {
+                if self.has_next("=") {
+                    Some(Ok(Token::SubAssign))
+                } else {
+                    Some(Ok(Token::Sub))
+                }
+            }
             '"' => {
                 let inside = match self.consume_while(|c| c != '"') {
                     Ok(inside) => inside,
