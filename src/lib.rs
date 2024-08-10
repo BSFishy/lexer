@@ -41,6 +41,9 @@ pub enum Token {
     While,
     For,
     String(String),
+    // NOTE: we keep this as a string, because quite frankly, we don't really care about the value
+    // right now
+    Number(String),
     Unknown(char),
     Eof,
 }
@@ -260,6 +263,14 @@ impl<T: Read + 'static> Iterator for Lexer<T> {
                 };
 
                 Some(Ok(Token::Identifier(format!("{c}{rest}"))))
+            }
+            c if c.is_numeric() => {
+                let rest = match self.consume_while(|c| c.is_numeric()) {
+                    Ok(rest) => rest,
+                    Err(err) => return Some(Err(err)),
+                };
+
+                Some(Ok(Token::Number(format!("{c}{rest}"))))
             }
             c => Some(Ok(Token::Unknown(c))),
         }
