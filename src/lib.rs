@@ -31,6 +31,8 @@ pub enum Token {
     Comment { contents: String },
     NewLine,
     Space,
+    // TODO: keyword token or just like this?
+    Func,
     Unknown(char),
     Eof,
 }
@@ -160,16 +162,46 @@ impl<T: Read> Lexer<T> {
         let mut acc = Vec::new();
         loop {
             match self.peek(1) {
-                Some(Ok(c)) if c != value => {
-                    acc.push(self.next().unwrap_or(Ok('\0')).map_err(LexError::from)?);
-                }
-                Some(Ok(_)) => break,
+                Some(Ok(c)) if c != value => match self.next() {
+                    Some(Ok(c)) => acc.push(c),
+                    Some(Err(err)) => return Err(LexError::from(err)),
+                    // we peek at least 1, so we will always get a next
+                    None => unreachable!(),
+                },
                 Some(Err(e)) => return Err(LexError::from(e)),
-                None => break,
+                _ => break,
             }
         }
 
         Ok(acc.into_iter().collect())
+    }
+
+    fn consume_count(&mut self, amount: usize) -> Result<(), LexError> {
+        for _ in 0..amount {
+            if let Some(Err(err)) = self.next() {
+                return Err(LexError::from(err));
+            }
+        }
+
+        Ok(())
+    }
+
+    fn match_and_consume(&mut self, current: char, needle: &str) -> Result<bool, LexError> {
+        for (i, c) in needle.chars().enumerate() {
+            let p = match i {
+                0 => Some(Ok(current)),
+                i => self.peek(i),
+            };
+
+            match (c, p) {
+                (c, Some(Ok(p))) if c == p => continue,
+                _ => return Ok(false),
+            }
+        }
+
+        self.consume_count(needle.len() - 1)?;
+
+        Ok(true)
     }
 }
 
@@ -177,8 +209,7 @@ impl<T: Read + 'static> Iterator for Lexer<T> {
     type Item = Result<Token, LexError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let next = test!(self.next()?; LexError::from);
-        match next {
+        match test!(self.next()?; LexError::from) {
             '/' => {
                 if self.has_next("/") {
                     test!(self.next()?; LexError::from);
@@ -189,11 +220,12 @@ impl<T: Read + 'static> Iterator for Lexer<T> {
                         Err(err) => Some(Err(err)),
                     }
                 } else {
-                    unreachable!();
+                    todo!();
                 }
             }
             '\n' => Some(Ok(Token::NewLine)),
             ' ' => Some(Ok(Token::Space)),
+            c if test!(self.match_and_consume(c, "func")) => Some(Ok(Token::Func)),
             c => Some(Ok(Token::Unknown(c))),
         }
     }
