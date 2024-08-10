@@ -17,7 +17,6 @@ fn main() -> Result<()> {
     let file = File::open(path).context(format!("failed to open {file_name}"))?;
     let lexer = Lexer::new(file);
     for token in lexer {
-        // std::hint::spin_loop();
         println!("{token:?}");
     }
 
