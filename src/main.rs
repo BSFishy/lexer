@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use lexer::Lexer;
+use lexer::{Lexer, Token};
 use std::{env::args, fs::File, path::PathBuf};
 
 fn main() -> Result<()> {
@@ -17,7 +17,12 @@ fn main() -> Result<()> {
     let file = File::open(path).context(format!("failed to open {file_name}"))?;
     let lexer = Lexer::new(file);
     for token in lexer {
-        println!("{token:?}");
+        let token = token.context("failed to lex next token")?;
+        if let Token::Unknown(c) = token {
+            bail!("unkown character: {c}");
+        }
+
+        print!("{token}");
     }
 
     Ok(())
