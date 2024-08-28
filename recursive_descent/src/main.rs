@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use lexer::{Lexer, Token};
+use recursive_descent::{Lexer, Token};
 use std::{env::args, fs::File, path::PathBuf};
 
 fn main() -> Result<()> {
