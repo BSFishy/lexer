@@ -3,7 +3,12 @@ name = "lexer"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+resolver = "2"
+members = ["utf8_reader"]
+
 [dependencies]
 anyhow = "1.0"
 console = "0.15"
 thiserror = "1.0"
+utf8_reader = { path = "utf8_reader" }

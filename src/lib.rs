@@ -1,11 +1,12 @@
 use std::{
     collections::VecDeque,
     fmt::{self},
-    io::{self, BufReader, Read},
+    io::{self, Read},
 };
 
 use console::style;
 use thiserror::Error;
+use utf8_reader::Utf8Reader;
 
 #[derive(Debug, Error)]
 pub enum LexError {
@@ -96,94 +97,17 @@ impl fmt::Display for Token {
     }
 }
 
-struct FileReader<T: Read> {
-    reader: BufReader<T>,
-}
-
-// Idea taken from https://github.com/timothee-haudebourg/utf8-decode
-impl<T: Read> FileReader<T> {
-    fn read_next_byte(&mut self) -> Option<Result<u8, io::Error>> {
-        let mut buf = [0u8; 1];
-        let n = test!(self.reader.read(&mut buf));
-
-        if n != 1 {
-            return None;
-        }
-
-        Some(Ok(buf[0]))
-    }
-
-    fn next_byte(&mut self) -> Option<Result<u32, io::Error>> {
-        let c = test!(self.read_next_byte()?);
-
-        if c & 0xC0 == 0x80 {
-            Some(Ok((c & 0x3F) as u32))
-        } else {
-            Some(Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "invalid UTF-8 sequence.",
-            )))
-        }
-    }
-
-    fn decode_next(&mut self, a: u32) -> Option<Result<u32, io::Error>> {
-        if a & 0x80 == 0x00 {
-            Some(Ok(a))
-        } else if a & 0xE0 == 0xC0 {
-            let b = test!(self.next_byte()?);
-
-            Some(Ok((a & 0x1F) << 6 | b))
-        } else if a & 0xF0 == 0xE0 {
-            let b = test!(self.next_byte()?);
-            let c = test!(self.next_byte()?);
-
-            Some(Ok((a & 0x0F) << 12 | b << 6 | c))
-        } else if a & 0xF8 == 0xF0 {
-            let b = test!(self.next_byte()?);
-            let c = test!(self.next_byte()?);
-            let d = test!(self.next_byte()?);
-
-            Some(Ok((a & 0x07) << 18 | b << 12 | c << 6 | d))
-        } else {
-            Some(Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "invalid UTF-8 sequence.",
-            )))
-        }
-    }
-}
-
-impl<T: Read> Iterator for FileReader<T> {
-    type Item = Result<char, io::Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let a = test!(self.read_next_byte()?) as u32;
-
-        let c = test!(self.decode_next(a)?);
-
-        Some(match char::try_from(c) {
-            Ok(c) => Ok(c),
-            Err(_) => Err(io::Error::new(
-                io::ErrorKind::InvalidData,
-                "invalid UTF-8 sequence",
-            )),
-        })
-    }
-}
-
 const LEXER_BUFFER_CAPACITY: usize = 16;
 
 pub struct Lexer<T: Read> {
-    reader: FileReader<T>,
+    reader: Utf8Reader<T>,
     buffer: VecDeque<char>,
 }
 
 impl<T: Read> Lexer<T> {
     pub fn new(reader: T) -> Self {
         Lexer {
-            reader: FileReader {
-                reader: BufReader::new(reader),
-            },
+            reader: Utf8Reader::new(reader),
             buffer: VecDeque::with_capacity(LEXER_BUFFER_CAPACITY),
         }
     }
