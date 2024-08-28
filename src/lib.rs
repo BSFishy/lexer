@@ -286,6 +286,13 @@ impl<T: Read + 'static> Iterator for Lexer<T> {
                 }
             }
             '\n' => Some(Ok(Token::NewLine)),
+            '\r' => {
+                if self.has_next("\n") {
+                    test!(self.next()?; LexError::from);
+                }
+
+                Some(Ok(Token::NewLine))
+            }
             ' ' => Some(Ok(Token::Space)),
             '(' => Some(Ok(Token::RParen)),
             ')' => Some(Ok(Token::LParen)),
