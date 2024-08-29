@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["recursive_descent", "utf8_reader"]
+members = ["backtracking", "recursive_descent", "utf8_reader"]
 
 [workspace.dependencies]
 anyhow = "1.0"

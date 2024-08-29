@@ -7,7 +7,7 @@ to get to know how to build good lexers.
 I am working on implementing the following types of lexers:
 
 - [Recursive descent lexer](./recursive_descent/)
-- Backtracking lexer
+- [Backtracking lexer](./backtracking/)
 - State machine lexer
 
 Additionally, I am working on implementing a "more production-ready" lexer, where
