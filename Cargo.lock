@@ -13,9 +13,17 @@ name = "backtracking"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "common",
  "console",
  "thiserror",
  "utf8_reader",
+]
+
+[[package]]
+name = "common"
+version = "0.1.0"
+dependencies = [
+ "console",
 ]
 
 [[package]]
@@ -72,6 +80,7 @@ name = "recursive_descent"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "common",
  "console",
  "thiserror",
  "utf8_reader",

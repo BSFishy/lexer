@@ -1,5 +1,6 @@
 use anyhow::{bail, Context, Result};
-use recursive_descent::{Lexer, Token};
+use common::Token;
+use recursive_descent::Lexer;
 use std::{env::args, fs::File, path::PathBuf};
 
 fn main() -> Result<()> {

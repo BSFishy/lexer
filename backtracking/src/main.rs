@@ -1,7 +1,8 @@
 use std::{env::args, fs::File, path::PathBuf};
 
 use anyhow::{bail, Context, Result};
-use backtracking::{Lexer, Token};
+use backtracking::Lexer;
+use common::Token;
 
 fn main() -> Result<()> {
     let file_name: Result<String> = match args().nth(1) {

@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow.workspace = true
+common.workspace = true
 console.workspace = true
 thiserror.workspace = true
 utf8_reader.workspace = true
