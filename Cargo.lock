@@ -58,6 +58,23 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a5f43f184355eefb8d17fc948dbecf6c13be3c141f20d834ae842193a448c72a"
 
 [[package]]
+name = "pattern"
+version = "0.1.0"
+dependencies = [
+ "pattern_macros",
+ "utf8_reader",
+]
+
+[[package]]
+name = "pattern_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "proc-macro2"
 version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"

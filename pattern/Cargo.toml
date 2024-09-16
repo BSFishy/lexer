@@ -1,0 +1,8 @@
+[package]
+name = "pattern"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pattern_macros.workspace = true
+utf8_reader.workspace = true

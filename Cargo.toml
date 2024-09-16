@@ -1,10 +1,21 @@
 [workspace]
 resolver = "2"
-members = ["backtracking", "common", "recursive_descent", "utf8_reader"]
+members = [
+  "backtracking",
+  "common",
+  "pattern",
+  "pattern_macros",
+  "recursive_descent",
+  "utf8_reader",
+]
 
 [workspace.dependencies]
 anyhow = "1.0"
 common = { path = "common" }
 console = "0.15"
+pattern_macros = { path = "pattern_macros" }
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = "2.0"
 thiserror = "1.0"
 utf8_reader = { path = "utf8_reader" }
