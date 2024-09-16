@@ -111,11 +111,13 @@ fn expand(trie: Trie, root: bool) -> TokenStream {
                     .into();
                 let value = expand(value, false);
 
+                // we already peeked the next character, so consuming that character should never
+                // return none
                 let body = quote! {
                     {
                         let c = match input.next() {
                             Some(c) => c,
-                            None => return Err(crate::LexError::UnknownInput(current_text)),
+                            None => unreachable!(),
                         };
 
                         current_text.push(c);

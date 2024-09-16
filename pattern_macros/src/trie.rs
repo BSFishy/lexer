@@ -4,6 +4,7 @@ use proc_macro2::{TokenStream, TokenTree};
 
 #[derive(Debug)]
 pub struct Trie {
+    // TODO: this should be a FIFO hashmap when iterating entries
     pub branches: HashMap<String, Trie>,
     pub leaf: Option<TokenStream>,
 }
