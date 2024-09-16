@@ -50,10 +50,12 @@ pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         trie.leaf
     );
 
-    let expanded = expand(trie);
+    let expanded = expand(trie, true);
     let expanded = quote! {
         impl #impl_generics crate::Lexable for #name #ty_generics #where_clause {
-            fn lex(input: &mut ::std::iter::Peekable<impl Iterator<Item = char>>) -> Option<Self> {
+            fn lex(input: &mut ::std::iter::Peekable<impl Iterator<Item = char>>) -> Result<Option<Self>, crate::LexError> {
+                let mut current_text = String::new();
+
                 #expanded
             }
         }
@@ -95,11 +97,11 @@ fn split_tokenstream_into_tokens(input: TokenStream) -> Vec<TokenTree> {
     tokens
 }
 
-fn expand(trie: Trie) -> TokenStream {
+fn expand(trie: Trie, root: bool) -> TokenStream {
     if let Some(ident) = trie.leaf {
         if trie.branches.is_empty() {
             // only has leaf, so so just return that value.
-            quote! { Some(#ident) }
+            quote! { Ok(Some(#ident)) }
         } else {
             // has both a leaf and branches. means that we need to peek to see if we need to
             // continue lexing or just return the thing.
@@ -107,22 +109,27 @@ fn expand(trie: Trie) -> TokenStream {
                 let key: MatchType = TokenStream::from_str(&key)
                     .expect("failed to reparse branch token stream")
                     .into();
-                let value = expand(value);
+                let value = expand(value, false);
+
+                let body = quote! {
+                    {
+                        let c = match input.next() {
+                            Some(c) => c,
+                            None => return Err(crate::LexError::UnknownInput(current_text)),
+                        };
+
+                        current_text.push(c);
+
+                        #value
+                    }
+                };
 
                 match key {
                     MatchType::Char(key) => quote! {
-                        #key => {
-                            input.next()?;
-
-                            #value
-                        }
+                        #key => #body
                     },
                     MatchType::Func(key) => quote! {
-                        c in (#key)(c) => {
-                            input.next()?;
-
-                            #value
-                        }
+                        c in (#key)(c) => #body
                     },
                 }
             });
@@ -132,9 +139,9 @@ fn expand(trie: Trie) -> TokenStream {
                 match input.peek() {
                     Some(p) => match p {
                         #branches
-                        _ => Some(#ident),
+                        _ => Ok(Some(#ident)),
                     }
-                    None => Some(#ident),
+                    None => Ok(Some(#ident)),
                 }
             }
         }
@@ -144,7 +151,7 @@ fn expand(trie: Trie) -> TokenStream {
             let key: MatchType = TokenStream::from_str(&key)
                 .expect("failed to reparse branch token stream")
                 .into();
-            let value = expand(value);
+            let value = expand(value, false);
 
             match key {
                 MatchType::Char(key) => quote! {
@@ -161,11 +168,24 @@ fn expand(trie: Trie) -> TokenStream {
         });
         let branches = join_tokenstreams(branches);
 
+        let return_value = if root {
+            quote! { Ok(None) }
+        } else {
+            quote! { Err(crate::LexError::UnknownInput(current_text)) }
+        };
+
         quote! {
-            match input.next()? {
+            let c = match input.next() {
+                Some(c) => c,
+                None => return #return_value,
+            };
+
+            current_text.push(c);
+
+            match c {
                 #branches
 
-                _ => None,
+                _ => Err(crate::LexError::UnknownInput(current_text)),
             }
         }
     }

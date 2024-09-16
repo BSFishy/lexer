@@ -5,4 +5,5 @@ edition = "2021"
 
 [dependencies]
 pattern_macros.workspace = true
+thiserror.workspace = true
 utf8_reader.workspace = true
