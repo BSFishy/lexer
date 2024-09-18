@@ -7,6 +7,8 @@ use syn::{parse_macro_input, Data, DeriveInput, LitChar, Meta};
 mod trie;
 use trie::Trie;
 
+mod dict;
+
 #[proc_macro_derive(Lexable, attributes(lex))]
 pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -40,7 +42,7 @@ pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
             let tokens = attr.tokens;
             let tokens = split_tokenstream_into_tokens(tokens);
-            trie.insert(tokens, quote! { #name::#variant_ident});
+            trie.insert(tokens, quote! { #name::#variant_ident });
         }
     }
 

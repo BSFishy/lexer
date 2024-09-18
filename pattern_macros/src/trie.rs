@@ -1,18 +1,18 @@
-use std::collections::HashMap;
-
 use proc_macro2::{TokenStream, TokenTree};
+
+use crate::dict::OrderedDict;
 
 #[derive(Debug)]
 pub struct Trie {
     // TODO: this should be a FIFO hashmap when iterating entries
-    pub branches: HashMap<String, Trie>,
+    pub branches: OrderedDict<String, Trie>,
     pub leaf: Option<TokenStream>,
 }
 
 impl Trie {
     pub fn new() -> Self {
         Self {
-            branches: HashMap::new(),
+            branches: OrderedDict::new(),
             leaf: None,
         }
     }
@@ -21,7 +21,7 @@ impl Trie {
         let mut node = self;
         for branch in branches {
             let branch = branch.to_string();
-            let new_node = node.branches.entry(branch).or_insert_with(Trie::new);
+            let new_node = node.branches.get_mut_or_insert_with(branch, Trie::new);
 
             node = new_node;
         }
