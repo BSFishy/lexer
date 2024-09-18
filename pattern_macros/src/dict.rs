@@ -22,6 +22,7 @@ impl<K: Eq + Hash + Clone, V> OrderedDict<K, V> {
         if !self.map.contains_key(&key) {
             self.keys.push(key.clone());
         }
+
         self.map.insert(key, value);
     }
 
@@ -88,9 +89,11 @@ impl<K: Eq + Hash + Clone, V> OrderedDict<K, V> {
         if !self.map.contains_key(&key) {
             // If not, insert the key into the keys vector to maintain order
             self.keys.push(key.clone());
+
             // Insert the key-value pair into the map
             self.map.insert(key.clone(), default());
         }
+
         // Return a mutable reference to the value associated with the key
         self.map.get_mut(&key).unwrap()
     }
