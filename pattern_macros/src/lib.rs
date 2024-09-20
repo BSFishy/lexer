@@ -1,3 +1,7 @@
+#![allow(unused_imports)]
+#![allow(unused_variables)]
+#![allow(dead_code)]
+
 use std::str::FromStr;
 
 use proc_macro2::{TokenStream, TokenTree};
@@ -11,63 +15,63 @@ mod dict;
 
 #[proc_macro_derive(Lexable, attributes(lex))]
 pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    let input = parse_macro_input!(input as DeriveInput);
+    // let input = parse_macro_input!(input as DeriveInput);
+    //
+    // let name = input.ident;
+    // let generics = input.generics;
+    // let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
+    //
+    // let data = match input.data {
+    //     Data::Enum(e) => e,
+    //     Data::Union(_) | Data::Struct(_) => panic!("Lexer can only be derived on enums"),
+    // };
+    //
+    // let mut trie = Trie::new();
+    // for variant in data.variants {
+    //     let variant_ident = &variant.ident;
+    //     for attr in variant.attrs {
+    //         let attr = match attr.meta {
+    //             Meta::List(list) => list,
+    //             Meta::NameValue(_) | Meta::Path(_) => continue,
+    //         };
+    //
+    //         let ident = match attr.path.get_ident() {
+    //             Some(ident) => ident,
+    //             None => continue,
+    //         };
+    //
+    //         if *ident != "lex" {
+    //             continue;
+    //         }
+    //
+    //         let tokens = attr.tokens;
+    //         let tokens: Vec<MatchType> = split_tokenstream_into_tokens(tokens)
+    //             .into_iter()
+    //             .map(|s| s.into())
+    //             .collect();
+    //
+    //         trie.insert(tokens, quote! { #name::#variant_ident });
+    //     }
+    // }
+    //
+    // assert!(
+    //     trie.leaf.is_none(),
+    //     "every token needs something to match on (token with nothing: {:?}",
+    //     trie.leaf
+    // );
+    //
+    // // let expanded = expand(trie, true);
+    // let expanded = quote! {
+    //     impl #impl_generics crate::Lexable for #name #ty_generics #where_clause {
+    //         fn lex(input: &mut ::std::iter::Peekable<impl Iterator<Item = char>>) -> Result<Option<Self>, crate::LexError> {
+    //             let mut current_text = String::new();
+    //
+    //             #expanded
+    //         }
+    //     }
+    // };
 
-    let name = input.ident;
-    let generics = input.generics;
-    let (impl_generics, ty_generics, where_clause) = generics.split_for_impl();
-
-    let data = match input.data {
-        Data::Enum(e) => e,
-        Data::Union(_) | Data::Struct(_) => panic!("Lexer can only be derived on enums"),
-    };
-
-    let mut trie = Trie::new();
-    for variant in data.variants {
-        let variant_ident = &variant.ident;
-        for attr in variant.attrs {
-            let attr = match attr.meta {
-                Meta::List(list) => list,
-                Meta::NameValue(_) | Meta::Path(_) => continue,
-            };
-
-            let ident = match attr.path.get_ident() {
-                Some(ident) => ident,
-                None => continue,
-            };
-
-            if *ident != "lex" {
-                continue;
-            }
-
-            let tokens = attr.tokens;
-            let tokens: Vec<MatchType> = split_tokenstream_into_tokens(tokens)
-                .into_iter()
-                .map(|s| s.into())
-                .collect();
-
-            trie.insert(tokens, quote! { #name::#variant_ident });
-        }
-    }
-
-    assert!(
-        trie.leaf.is_none(),
-        "every token needs something to match on (token with nothing: {:?}",
-        trie.leaf
-    );
-
-    let expanded = expand(trie, true);
-    let expanded = quote! {
-        impl #impl_generics crate::Lexable for #name #ty_generics #where_clause {
-            fn lex(input: &mut ::std::iter::Peekable<impl Iterator<Item = char>>) -> Result<Option<Self>, crate::LexError> {
-                let mut current_text = String::new();
-
-                #expanded
-            }
-        }
-    };
-
-    proc_macro::TokenStream::from(expanded)
+    proc_macro::TokenStream::from(quote! { fn it_works() {} })
 }
 
 fn split_tokenstream_into_tokens(input: TokenStream) -> Vec<TokenStream> {

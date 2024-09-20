@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::{io::Read, iter::Peekable};
 
 use thiserror::Error;
@@ -56,14 +58,15 @@ impl<T: Read> Iterator for Lexer<T> {
         if self.errored {
             None
         } else {
-            match Token::lex(&mut self.reader) {
-                Ok(Some(t)) => Some(Ok(t)),
-                Err(err) => {
-                    self.errored = true;
-                    Some(Err(err))
-                }
-                Ok(None) => None,
-            }
+            // match Token::lex(&mut self.reader) {
+            //     Ok(Some(t)) => Some(Ok(t)),
+            //     Err(err) => {
+            //         self.errored = true;
+            //         Some(Err(err))
+            //     }
+            //     Ok(None) => None,
+            // }
+            None
         }
     }
 }

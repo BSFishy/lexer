@@ -5,7 +5,7 @@ members = [
   "common",
   "pattern",
   "pattern_macros",
-  "recursive_descent",
+  "recursive_descent", "state_machine", "state_machine_macros",
   "utf8_reader",
 ]
 
