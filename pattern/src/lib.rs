@@ -15,6 +15,8 @@ pub enum Token {
     Division,
     #[lex('f', 'u', 'n', 'c')]
     Func,
+    #[lex(|c| c.is_alphabetic(), for |c| c.is_alphanumeric())]
+    Identifier,
 }
 
 #[derive(Debug, Error)]

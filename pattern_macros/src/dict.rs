@@ -3,7 +3,7 @@ use std::{collections::HashMap, hash::Hash};
 /// A dictionary that preserves insertion order.
 #[derive(Debug)]
 pub struct OrderedDict<K, V> {
-    map: HashMap<K, V>,
+    pub(crate) map: HashMap<K, V>,
     keys: Vec<K>,
 }
 

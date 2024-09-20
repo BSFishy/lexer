@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use proc_macro2::{Delimiter, Group, TokenStream, TokenTree};
+use proc_macro2::{TokenStream, TokenTree};
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, LitChar, Meta};
 
@@ -41,7 +41,11 @@ pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             }
 
             let tokens = attr.tokens;
-            let tokens = split_tokenstream_into_tokens(tokens);
+            let tokens: Vec<MatchType> = split_tokenstream_into_tokens(tokens)
+                .into_iter()
+                .map(|s| s.into())
+                .collect();
+
             trie.insert(tokens, quote! { #name::#variant_ident });
         }
     }
@@ -66,7 +70,7 @@ pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     proc_macro::TokenStream::from(expanded)
 }
 
-fn split_tokenstream_into_tokens(input: TokenStream) -> Vec<TokenTree> {
+fn split_tokenstream_into_tokens(input: TokenStream) -> Vec<TokenStream> {
     let mut tokens = Vec::new();
     let mut current_stream = TokenStream::new();
 
@@ -74,10 +78,7 @@ fn split_tokenstream_into_tokens(input: TokenStream) -> Vec<TokenTree> {
         match &token {
             TokenTree::Punct(punct) => {
                 if punct.as_char() == ',' {
-                    tokens.push(TokenTree::Group(Group::new(
-                        Delimiter::None,
-                        current_stream,
-                    )));
+                    tokens.push(current_stream);
                     current_stream = TokenStream::new();
                 } else {
                     current_stream.extend(Some(token));
@@ -90,10 +91,7 @@ fn split_tokenstream_into_tokens(input: TokenStream) -> Vec<TokenTree> {
     }
 
     if !current_stream.is_empty() {
-        tokens.push(TokenTree::Group(Group::new(
-            Delimiter::None,
-            current_stream,
-        )));
+        tokens.push(current_stream);
     }
 
     tokens
@@ -108,15 +106,14 @@ fn expand(trie: Trie, root: bool) -> TokenStream {
             // has both a leaf and branches. means that we need to peek to see if we need to
             // continue lexing or just return the thing.
             let branches = trie.branches.into_iter().map(|(key, value)| {
-                let key: MatchType = TokenStream::from_str(&key)
-                    .expect("failed to reparse branch token stream")
-                    .into();
+                let key = TokenStream::from_str(key.str())
+                    .expect("failed to reparse branch token stream");
                 let value = expand(value, false);
 
                 // we already peeked the next character, so consuming that character should never
                 // return none
-                let body = quote! {
-                    {
+                quote! {
+                    #key =>  {
                         let c = match input.next() {
                             Some(c) => c,
                             None => unreachable!(),
@@ -126,15 +123,6 @@ fn expand(trie: Trie, root: bool) -> TokenStream {
 
                         #value
                     }
-                };
-
-                match key {
-                    MatchType::Char(key) => quote! {
-                        #key => #body
-                    },
-                    MatchType::Func(key) => quote! {
-                        c in (#key)(c) => #body
-                    },
                 }
             });
             let branches = join_tokenstreams(branches);
@@ -152,22 +140,14 @@ fn expand(trie: Trie, root: bool) -> TokenStream {
     } else {
         // has no leaf. always consume the next token and match on the character.
         let branches = trie.branches.into_iter().map(|(key, value)| {
-            let key: MatchType = TokenStream::from_str(&key)
-                .expect("failed to reparse branch token stream")
-                .into();
+            let key =
+                TokenStream::from_str(key.str()).expect("failed to reparse branch token stream");
             let value = expand(value, false);
 
-            match key {
-                MatchType::Char(key) => quote! {
-                    #key => {
-                        #value
-                    }
-                },
-                MatchType::Func(key) => quote! {
-                    c if (#key)(c) => {
-                        #value
-                    }
-                },
+            quote! {
+                #key => {
+                    #value
+                }
             }
         });
         let branches = join_tokenstreams(branches);
@@ -199,13 +179,43 @@ fn expand(trie: Trie, root: bool) -> TokenStream {
 enum MatchType {
     Char(TokenStream),
     Func(TokenStream),
+    ForFunc(TokenStream),
+}
+
+impl MatchType {
+    fn key(&self) -> String {
+        match self {
+            MatchType::Char(key) => quote! {
+                #key
+            },
+            MatchType::Func(key) => quote! {
+                c if (#key)(c)
+            },
+            MatchType::ForFunc(key) => quote! {
+                c if (#key)(c)
+            },
+        }
+        .to_string()
+    }
 }
 
 impl From<TokenStream> for MatchType {
     fn from(value: TokenStream) -> Self {
         let mut iter = value.clone().into_iter();
 
-        // Check if the TokenStream is a single token
+        // Check if the TokenStream starts with 'for'
+        if let Some(TokenTree::Ident(ident)) = iter.next() {
+            if ident == "for" {
+                // Collect the rest of the tokens without the 'for' keyword
+                let rest_of_tokens: TokenStream = iter.collect();
+                return MatchType::ForFunc(rest_of_tokens);
+            }
+        }
+
+        // Reset the iterator for the next check
+        let mut iter = value.clone().into_iter();
+
+        // Check if the TokenStream is a single char literal
         if let Some(token) = iter.next() {
             // Ensure the token stream has exactly one token
             if iter.next().is_none() {
@@ -218,7 +228,7 @@ impl From<TokenStream> for MatchType {
             }
         }
 
-        // If it's not a single char literal, return it as a Func
+        // If it's not a single char literal or 'for' expression, return it as a Func
         MatchType::Func(value)
     }
 }
