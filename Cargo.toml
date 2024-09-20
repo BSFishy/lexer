@@ -5,7 +5,9 @@ members = [
   "common",
   "pattern",
   "pattern_macros",
-  "recursive_descent", "state_machine", "state_machine_macros",
+  "recursive_descent",
+  "state_machine",
+  "state_machine_macros",
   "utf8_reader",
 ]
 
@@ -16,6 +18,7 @@ console = "0.15"
 pattern_macros = { path = "pattern_macros" }
 proc-macro2 = "1.0"
 quote = "1.0"
+state_machine_macros = { path = "state_machine_macros" }
 syn = "2.0"
 thiserror = "1.0"
 utf8_reader = { path = "utf8_reader" }

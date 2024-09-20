@@ -107,10 +107,20 @@ dependencies = [
 [[package]]
 name = "state_machine"
 version = "0.1.0"
+dependencies = [
+ "state_machine_macros",
+ "thiserror",
+ "utf8_reader",
+]
 
 [[package]]
 name = "state_machine_macros"
 version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "syn"
