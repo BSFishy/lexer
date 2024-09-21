@@ -20,4 +20,6 @@ pub enum Token {
     Func,
     #[lex("@a@A*")]
     Identifier,
+    #[lex("\"(([^\"]|\\\")*)\"")]
+    String,
 }
