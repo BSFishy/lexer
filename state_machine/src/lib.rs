@@ -12,14 +12,14 @@ pub enum LexError {
 
 #[derive(Debug, Lexable)]
 pub enum Token {
-    #[lex("//[^\n]*")]
+    #[lex("//([^\n]*)")]
     Comment,
     #[lex("/")]
     Division,
     #[lex("func")]
     Func,
-    #[lex("@a@A*")]
+    #[lex("(@a@A*)")]
     Identifier,
-    #[lex("\"(([^\"]|\\\")*)\"")]
+    #[lex("\"(([^\"]|\\\\\")*)\"")]
     String,
 }
