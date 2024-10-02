@@ -101,7 +101,6 @@ impl Parser<'_> {
     }
 
     fn group(&mut self) -> Result<Unit, ParseError> {
-        println!("entering group");
         let mut options = vec![];
         let mut option = self.expr()?;
 
@@ -111,11 +110,9 @@ impl Parser<'_> {
             let t = match self.lexer.peek() {
                 Some(t) => t.clone().map_err(ParseError::from)?,
                 None => {
-                    println!("eos");
                     break;
                 }
             };
-            println!("peek: {t:?}");
 
             match t {
                 Token::Or => {
@@ -125,8 +122,6 @@ impl Parser<'_> {
                 _ => break,
             }
         }
-
-        println!("exiting group, {options:?}");
 
         self.right_paren()?;
 
@@ -138,7 +133,6 @@ impl Parser<'_> {
     }
 
     fn negative_char(&mut self) -> Result<Unit, ParseError> {
-        println!("entering negative char");
         self.carat()?;
 
         let c = self.char()?;
@@ -164,6 +158,7 @@ macro_rules! lex_token {
     };
 }
 
+#[allow(dead_code)]
 impl Parser<'_> {
     fn left_square_bracket(&mut self) -> Result<(), LexError> {
         lex_token!(self.lexer.next(); Token::LSqBracket => "LEFT SQUARE BRACKET")

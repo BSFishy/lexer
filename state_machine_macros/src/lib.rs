@@ -4,10 +4,9 @@ use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, LitStr, Meta};
 
 mod lexer;
-use lexer::Lexer;
-
 mod parse_tree;
 mod parser;
+mod trie;
 
 #[proc_macro_derive(Lexable, attributes(lex))]
 pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -46,9 +45,7 @@ pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream
                 None => panic!("could not parse lex pattern"),
             };
 
-            // let lexer = Lexer::new(&pattern);
             let parser = Parser::new(&pattern);
-            // panic!("{:?}", parser.parse());
 
             strs.push(parser.parse());
         }

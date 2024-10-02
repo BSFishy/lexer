@@ -1,4 +1,4 @@
-use std::{iter::Peekable, str::Chars};
+use std::str::Chars;
 
 use thiserror::Error;
 
@@ -52,7 +52,7 @@ impl Iterator for Lexer<'_> {
             None => return None,
         };
 
-        let c = match c {
+        match c {
             '*' => Some(Ok(Token::Star)),
             '[' => Some(Ok(Token::LSqBracket)),
             ']' => Some(Ok(Token::RSqBracket)),
@@ -86,8 +86,6 @@ impl Iterator for Lexer<'_> {
             }
 
             _ => Some(Ok(Token::Char(c))),
-        };
-        println!("next token: {c:?}");
-        c
+        }
     }
 }
