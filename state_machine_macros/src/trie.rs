@@ -185,13 +185,17 @@ pub(crate) fn print(trie: &Trie, level: usize) -> String {
     let mut out = String::new();
 
     for (k, branch) in trie.branches.iter() {
-        out.push_str(&format!("{}{:?}\n", repeat(' ', level * 4), k));
+        out.push_str(&format!(
+            "{}{:?}{}\n",
+            repeat(' ', level * 4),
+            k,
+            match &branch.leaf {
+                Some(leaf) => format!(" - {:?}", leaf),
+                None => "".to_string(),
+            }
+        ));
 
         out.push_str(&print(branch, level + 1));
-    }
-
-    if let Some(leaf) = &trie.leaf {
-        out.push_str(&format!("{}{:?}\n", repeat(' ', level * 4), leaf));
     }
 
     out
