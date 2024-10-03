@@ -1,12 +1,17 @@
-use parser::Parser;
 use proc_macro2::{TokenStream, TokenTree};
 use quote::quote;
 use syn::{parse_macro_input, Data, DeriveInput, LitStr, Meta};
 
 mod lexer;
+
 mod parse_tree;
+use parse_tree::into_trie;
+
 mod parser;
+use parser::Parser;
+
 mod trie;
+use trie::{Trie, Variant};
 
 #[proc_macro_derive(Lexable, attributes(lex))]
 pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -21,10 +26,10 @@ pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream
         Data::Union(_) | Data::Struct(_) => panic!("Lexable can only be derived on enums"),
     };
 
-    let mut strs = vec![];
+    let mut trie = Trie::new();
     for variant in data.variants {
         // TODO: make this get all necessary info to create this token
-        let _variant_name = &variant.ident;
+        let variant_name = &variant.ident;
         for attr in variant.attrs {
             let attr = match attr.meta {
                 Meta::List(list) => list,
@@ -46,12 +51,20 @@ pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             };
 
             let parser = Parser::new(&pattern);
+            let t = into_trie(
+                parser.parse().expect("failed to parse"),
+                Variant {
+                    name: variant_name.to_string(),
+                },
+            );
 
-            strs.push(parser.parse());
+            trie.merge(t);
         }
     }
 
-    panic!("{:?}", strs);
+    trie.expand();
+
+    panic!("\n{}", trie::print(&trie, 0));
 
     let expanded = quote! {
         impl #impl_generics crate::Lexable for #name #ty_generics #where_clause {
