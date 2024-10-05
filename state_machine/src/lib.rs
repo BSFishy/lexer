@@ -51,6 +51,12 @@ pub enum Token {
     Semicolon,
     #[lex("=")]
     Equals,
+    #[lex("(@0@0*)")]
+    Number,
+    #[lex(">")]
+    GT,
+    #[lex("<")]
+    LT,
 }
 
 struct Reader<T: Read>(Utf8Reader<T>);

@@ -339,6 +339,7 @@ fn to_condition(branch: &Branch) -> (Vec<Vec<TokenStream>>, bool) {
             vec![vec![match s {
                 'a' => quote! { c if c.is_alphabetic() },
                 'A' => quote! { c if c.is_alphanumeric() },
+                '0' => quote! { c if c.is_numeric() },
                 _ => unreachable!(),
             }]],
             false,
@@ -354,6 +355,7 @@ fn to_condition(branch: &Branch) -> (Vec<Vec<TokenStream>>, bool) {
             vec![vec![match s {
                 'a' => quote! { c if !c.is_alphabetic() },
                 'A' => quote! { c if !c.is_alphanumeric() },
+                '0' => quote! { c if !c.is_numeric() },
                 _ => unreachable!(),
             }]],
             false,

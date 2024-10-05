@@ -183,6 +183,7 @@ fn sequence(seq: char, c: char) -> bool {
     match seq {
         'a' => c.is_alphabetic(),
         'A' => c.is_alphanumeric(),
+        '0' => c.is_numeric(),
         _ => panic!("unknown sequence {seq}"),
     }
 }
