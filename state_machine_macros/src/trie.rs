@@ -141,16 +141,34 @@ impl Trie {
                                 Branch::Sequence(s) => {
                                     if sequence(*s, *c) {
                                         trivial.insert(k.clone()).merge(expansion.clone());
+
+                                        if trivial.leaf.is_none() {
+                                            if let Some(leaf) = &expansion.leaf {
+                                                trivial.leaf = Some(leaf.clone());
+                                            }
+                                        }
                                     }
                                 }
                                 Branch::NegativeChar(s) => {
                                     if c != s {
                                         trivial.insert(k.clone()).merge(expansion.clone());
+
+                                        if trivial.leaf.is_none() {
+                                            if let Some(leaf) = &expansion.leaf {
+                                                trivial.leaf = Some(leaf.clone());
+                                            }
+                                        }
                                     }
                                 }
                                 Branch::NegativeSequence(s) => {
                                     if !sequence(*s, *c) {
                                         trivial.insert(k.clone()).merge(expansion.clone());
+
+                                        if trivial.leaf.is_none() {
+                                            if let Some(leaf) = &expansion.leaf {
+                                                trivial.leaf = Some(leaf.clone());
+                                            }
+                                        }
                                     }
                                 }
                                 _ => panic!("non trivial expansion"),
