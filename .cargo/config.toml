@@ -2,3 +2,5 @@
 rd = "run -p recursive_descent example.lang"
 bt = "run -p backtracking example.lang"
 sm = "run -p state_machine example.lang"
+sme = "expand --package state_machine --lib"
+smt = "test --package state_machine_macros --lib -- --nocapture"

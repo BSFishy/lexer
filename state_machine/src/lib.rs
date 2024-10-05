@@ -21,6 +21,16 @@ pub enum Token {
     Division,
     #[lex("func")]
     Func,
+    #[lex("return")]
+    Return,
+    #[lex("while")]
+    While,
+    #[lex("for")]
+    For,
+    #[lex("if")]
+    If,
+    #[lex("else")]
+    Else,
     #[lex("(@a@A*)")]
     Identifier,
     #[lex(r#""(([^"]|\\")*)""#)]

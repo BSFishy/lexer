@@ -122,8 +122,8 @@ fn expand(trie: &Trie, root: bool) -> TokenStream {
                 });
 
             quote! {
-                let p = match input.peek() {
-                    Some(p) => *p,
+                let p = match input.peek().copied() {
+                    Some(p) => p,
                     None => return Ok(Some(#variant)),
                 };
 

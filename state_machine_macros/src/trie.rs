@@ -188,7 +188,7 @@ fn sequence(seq: char, c: char) -> bool {
     }
 }
 
-#[cfg(test)]
+#[allow(dead_code)]
 fn repeat(c: char, amount: usize) -> String {
     let mut out = String::new();
 
@@ -199,7 +199,7 @@ fn repeat(c: char, amount: usize) -> String {
     out
 }
 
-#[cfg(test)]
+#[allow(dead_code)]
 pub(crate) fn print(trie: &Trie, level: usize) -> String {
     let mut out = String::new();
 
