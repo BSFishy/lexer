@@ -2,7 +2,9 @@ use std::str::FromStr;
 
 use proc_macro2::{Span, TokenStream, TokenTree};
 use quote::{quote, ToTokens};
-use syn::{parse::Parse, parse_macro_input, Data, DeriveInput, Ident, LitChar, LitStr, Meta};
+use syn::{parse_macro_input, Data, DeriveInput, LitChar, LitStr, Meta};
+
+mod dict;
 
 mod lexer;
 
@@ -96,15 +98,39 @@ fn extract_string_literal(stream: TokenStream) -> Option<LitStr> {
 
 fn expand(trie: &Trie, root: bool) -> TokenStream {
     if let Some(leaf) = &trie.leaf {
+        let variant = TokenStream::from_str(&leaf.name).expect("failed to reparse variant name");
         if trie.branches.is_empty() {
             // unambiguous branch, only has a leaf so return that variant
-            let variant =
-                TokenStream::from_str(&leaf.name).expect("failed to reparse variant name");
             quote! { Ok(Some(#variant)) }
         } else {
             // ambiguous branch: has both branches and a leaf so we need to peek to see if we
             // should continue lexing or not
-            quote! { panic!("unimplemented") }
+            let branches = trie
+                .branches
+                .iter()
+                .fold(TokenStream::new(), |acc, (k, v)| {
+                    let k = to_condition(k);
+                    let v = expand(v, false);
+
+                    let branch = condition_to_tokens(k, &v, true);
+
+                    quote! {
+                        #acc
+                        #branch
+                    }
+                });
+
+            quote! {
+                let p = match input.peek() {
+                    Some(p) => *p,
+                    None => return Ok(Some(#variant)),
+                };
+
+                match p {
+                    #branches
+                    _ => Ok(Some(#variant)),
+                }
+            }
         }
     } else if trie.branches.is_empty() {
         // no leaf and no branches. this should not happen
@@ -118,7 +144,7 @@ fn expand(trie: &Trie, root: bool) -> TokenStream {
                 let k = to_condition(k);
                 let v = expand(v, false);
 
-                condition_to_tokens(&v, k)
+                condition_to_tokens(k, &v, false)
             })
             .collect::<Vec<_>>();
         let branches = flatten(branches);
@@ -156,14 +182,24 @@ fn flatten(streams: Vec<TokenStream>) -> TokenStream {
 }
 
 fn condition_to_tokens(
-    child: &TokenStream,
     (map, expansion): (Vec<Vec<TokenStream>>, bool),
+    child: &TokenStream,
+    peeking: bool,
 ) -> TokenStream {
     let streams = map
         .iter()
         .map(|steps| {
             let key = steps.first().expect("empty condition");
             let rest = &steps[1..];
+            let peeked = if peeking {
+                quote! {
+                    input.next();
+                    current_text.push(p);
+                }
+            } else {
+                TokenStream::new()
+            };
+
             let prefix = rest.iter().fold(TokenStream::new(), |acc, e| {
                 let aarms = map
                     .iter()
@@ -279,6 +315,7 @@ fn condition_to_tokens(
 
             quote! {
                 #key => {
+                    #peeked
                     #prefix
                     #expanded
                     #child

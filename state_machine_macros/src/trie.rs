@@ -1,5 +1,7 @@
 use std::{collections::HashMap, ops::Deref};
 
+use crate::dict::OrderedDict;
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Branch {
     Char(char),
@@ -17,20 +19,21 @@ pub struct Variant {
 
 #[derive(Debug, Clone)]
 pub struct Trie {
-    pub(crate) branches: HashMap<Branch, Trie>,
+    pub(crate) branches: OrderedDict<Branch, Trie>,
     pub(crate) leaf: Option<Variant>,
 }
 
 impl Trie {
     pub fn new() -> Trie {
         Trie {
-            branches: HashMap::new(),
+            branches: OrderedDict::new(),
             leaf: None,
         }
     }
 
     pub fn insert(&mut self, branch: Branch) -> &mut Trie {
-        self.branches.entry(branch).or_insert_with(Trie::new)
+        // self.branches.entry(branch).or_insert_with(Trie::new)
+        self.branches.get_mut_or_insert_with(branch, Trie::new)
     }
 
     pub fn search(&mut self, branches: &[Branch]) -> &mut Trie {
@@ -72,7 +75,7 @@ impl Trie {
         self.expand_non_trivial();
         self.expand_expansions();
 
-        for branch in self.branches.values_mut() {
+        for branch in self.branches.map.values_mut() {
             branch.expand()
         }
     }
@@ -88,7 +91,7 @@ impl Trie {
             }
         }
 
-        for (c, trivial) in self.branches.iter_mut() {
+        for (c, trivial) in self.branches.map.iter_mut() {
             match c {
                 Branch::Char(c) => {
                     for (k, non_trivial) in non_trivial_branches.iter() {
@@ -129,7 +132,7 @@ impl Trie {
             }
         }
 
-        for (c, trivial) in self.branches.iter_mut() {
+        for (c, trivial) in self.branches.map.iter_mut() {
             match c {
                 Branch::Char(c) => {
                     for (k, expansion) in expansion_branches.iter() {
@@ -171,6 +174,7 @@ fn sequence(seq: char, c: char) -> bool {
     }
 }
 
+#[cfg(test)]
 fn repeat(c: char, amount: usize) -> String {
     let mut out = String::new();
 
@@ -181,6 +185,7 @@ fn repeat(c: char, amount: usize) -> String {
     out
 }
 
+#[cfg(test)]
 pub(crate) fn print(trie: &Trie, level: usize) -> String {
     let mut out = String::new();
 
