@@ -3,6 +3,14 @@ name = "state_machine"
 version = "0.1.0"
 edition = "2021"
 
+[[bench]]
+name = "bench"
+harness = false
+
+[dev-dependencies]
+common.workspace = true
+criterion.workspace = true
+
 [dependencies]
 anyhow.workspace = true
 state_machine_macros.workspace = true

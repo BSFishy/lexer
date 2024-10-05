@@ -2,6 +2,8 @@ use std::fmt;
 
 use console::style;
 
+pub const CODE: &str = include_str!("../../example.lang");
+
 #[macro_export]
 macro_rules! test {
     ($e:expr; $name:path) => {
