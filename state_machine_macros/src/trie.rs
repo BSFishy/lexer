@@ -32,7 +32,6 @@ impl Trie {
     }
 
     pub fn insert(&mut self, branch: Branch) -> &mut Trie {
-        // self.branches.entry(branch).or_insert_with(Trie::new)
         self.branches.get_mut_or_insert_with(branch, Trie::new)
     }
 
@@ -51,11 +50,7 @@ impl Trie {
         }
 
         if let Some(leaf) = other.leaf {
-            if self.leaf.is_some() {
-                panic!("multiple tokens match the same thing");
-            } else {
-                self.leaf = Some(leaf.clone());
-            }
+            self.leaf = Some(leaf.clone());
         }
     }
 

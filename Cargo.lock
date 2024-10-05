@@ -108,6 +108,7 @@ dependencies = [
 name = "state_machine"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "state_machine_macros",
  "thiserror",
  "utf8_reader",

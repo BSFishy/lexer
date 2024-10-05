@@ -58,12 +58,23 @@ pub fn into_trie(expr: Expr, variant: Variant) -> Trie {
 }
 
 fn into_trie_impl(slice: &[Unit], parent: &mut Trie, variant: Variant) {
-    if slice.is_empty() {
-        parent.leaf = Some(variant);
-        return;
-    }
-
     let unit = slice[0].clone();
     let branches = <Vec<Branch>>::from(unit);
-    into_trie_impl(&slice[1..], parent.search(branches.as_slice()), variant);
+
+    let slice = &slice[1..];
+    let parent = parent.search(&branches[..branches.len() - 1]);
+    let last_branch = branches.last().expect("empty branches").clone();
+    let search = parent.search(&[last_branch.clone()]);
+
+    if slice.is_empty() {
+        search.leaf = Some(variant.clone());
+
+        if let Branch::Expand(_) = last_branch {
+            if parent.leaf.is_none() {
+                parent.leaf = Some(variant);
+            }
+        }
+    } else {
+        into_trie_impl(slice, search, variant);
+    }
 }

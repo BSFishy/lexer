@@ -1,3 +1,4 @@
 [alias]
 rd = "run -p recursive_descent example.lang"
 bt = "run -p backtracking example.lang"
+sm = "run -p state_machine example.lang"

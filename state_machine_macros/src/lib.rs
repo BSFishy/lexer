@@ -203,7 +203,7 @@ fn condition_to_tokens(
             let prefix = rest.iter().fold(TokenStream::new(), |acc, e| {
                 let aarms = map
                     .iter()
-                    .filter(|x| dbg!(dbg!(x[0].to_string()) != dbg!(key.to_string())))
+                    .filter(|x| x[0].to_string() != key.to_string())
                     .fold(TokenStream::new(), |accu, el| {
                         let el = &el[0];
 
@@ -244,7 +244,6 @@ fn condition_to_tokens(
 
                     let rest = if conds.len() > 1 {
                         let arms = conds[1..].iter().enumerate().fold(TokenStream::new(), |acc, (i, cond)| {
-                            println!("{i}");
                             if i == conds.len() - 2 {
                                 quote! {
                                     #cond => continue,

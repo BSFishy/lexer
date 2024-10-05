@@ -23,8 +23,34 @@ pub enum Token {
     Func,
     #[lex("(@a@A*)")]
     Identifier,
-    #[lex("\"(([^\"]|\\\\\")*)\"")]
+    #[lex(r#""(([^"]|\\")*)""#)]
     String,
+    #[lex("(\n|\r)")]
+    NewLine,
+    #[lex(" ")]
+    Space,
+    #[lex(r#"\("#)]
+    LParen,
+    #[lex(r#"\)"#)]
+    RParen,
+    #[lex(",")]
+    Comma,
+    #[lex("{")]
+    RBrace,
+    #[lex("}")]
+    LBrace,
+    #[lex("+")]
+    Add,
+    #[lex("+=")]
+    AddAssign,
+    #[lex("-")]
+    Sub,
+    #[lex("-=")]
+    SubAssign,
+    #[lex(";")]
+    Semicolon,
+    #[lex("=")]
+    Equals,
 }
 
 struct Reader<T: Read>(Utf8Reader<T>);
