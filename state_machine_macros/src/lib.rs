@@ -72,6 +72,7 @@ pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream
 
     let expanded = quote! {
         impl #impl_generics crate::Lexable for #name #ty_generics #where_clause {
+            #[inline]
             fn lex(input: &mut ::std::iter::Peekable<impl Iterator<Item = char>>) -> Result<Option<Self>, crate::LexError> {
                 let mut current_text = String::new();
 
