@@ -1,4 +1,9 @@
-use std::{collections::HashMap, ops::Deref};
+use std::{collections::HashMap, ops::Deref, str::FromStr};
+
+use itertools::Itertools;
+use proc_macro2::{Span, TokenStream};
+use quote::{quote, ToTokens};
+use syn::Ident;
 
 use crate::dict::OrderedDict;
 
@@ -15,6 +20,57 @@ pub enum Branch {
 #[derive(Debug, Clone)]
 pub struct Variant {
     pub(crate) name: String,
+    pub(crate) body: VariantBody,
+}
+
+#[derive(Debug, Clone)]
+pub enum VariantBody {
+    Unit,
+    Tuple(Vec<TupleArg>),
+}
+
+#[derive(Debug, Clone)]
+pub enum TupleArg {
+    Capture(usize),
+}
+
+impl ToTokens for Variant {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let name = TokenStream::from_str(&self.name).expect("failed to reparse variant name");
+        let initializer = match &self.body {
+            VariantBody::Unit => TokenStream::new(),
+            VariantBody::Tuple(args) => {
+                let args = args
+                    .iter()
+                    .map(|tuple| match tuple {
+                        TupleArg::Capture(capture) => match capture {
+                            0 => quote! { current_text.clone() },
+                            _ => {
+                                let start = Ident::new(
+                                    &format!("capture{}_start", capture),
+                                    Span::call_site(),
+                                );
+                                let end = Ident::new(
+                                    &format!("capture{}_end", capture),
+                                    Span::call_site(),
+                                );
+
+                                quote! { current_text[#start..#end].to_string() }
+                            }
+                        },
+                    })
+                    .intersperse(quote! { , })
+                    .fold(TokenStream::new(), |acc, e| quote! { #acc #e });
+
+                quote! { (#args) }
+            }
+        };
+
+        tokens.extend(quote! {
+            #name
+            #initializer
+        });
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -222,7 +278,7 @@ pub(crate) fn print(trie: &Trie, level: usize) -> String {
 
 #[cfg(test)]
 mod tests {
-    use crate::{parse_tree::into_trie, parser::Parser};
+    use crate::{parse_tree::into_trie, parser::Parser, trie::VariantBody};
 
     use super::{print, Trie, Variant};
 
@@ -235,6 +291,7 @@ mod tests {
                 Parser::new(pattern).parse().unwrap(),
                 Variant {
                     name: pattern.to_string(),
+                    body: VariantBody::Unit,
                 },
             );
             trie.merge(t);

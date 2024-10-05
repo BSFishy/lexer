@@ -16,6 +16,7 @@ anyhow = "1.0"
 common = { path = "common" }
 criterion = { version = "0.5", features = ["html_reports"] }
 console = "0.15"
+itertools = "0.13"
 pattern_macros = { path = "pattern_macros" }
 proc-macro2 = "1.0"
 quote = "1.0"

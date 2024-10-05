@@ -31,8 +31,10 @@ pub enum Token {
     If,
     #[lex("else")]
     Else,
-    #[lex("(@a@A*)")]
-    Identifier,
+    #[lex("let")]
+    Let,
+    #[lex("@a@A*")]
+    Identifier(#[capture(0)] String),
     #[lex(r#""(([^"]|\\")*)""#)]
     String,
     #[lex("(\n|\r)")]
@@ -61,7 +63,7 @@ pub enum Token {
     Semicolon,
     #[lex("=")]
     Equals,
-    #[lex("(@0@0*)")]
+    #[lex("@0@0*")]
     Number,
     #[lex(">")]
     GT,

@@ -1,8 +1,6 @@
-use std::str::FromStr;
-
 use proc_macro2::{Span, TokenStream, TokenTree};
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Data, DeriveInput, LitChar, LitStr, Meta};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, LitChar, LitInt, LitStr, Meta};
 
 mod dict;
 
@@ -15,9 +13,9 @@ mod parser;
 use parser::Parser;
 
 mod trie;
-use trie::{Branch, Trie, Variant};
+use trie::{Branch, Trie, TupleArg, Variant, VariantBody};
 
-#[proc_macro_derive(Lexable, attributes(lex))]
+#[proc_macro_derive(Lexable, attributes(lex, capture))]
 pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -34,10 +32,54 @@ pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     for variant in data.variants {
         // TODO: make this get all necessary info to create this token
         let variant_name = &variant.ident;
+        let body = match variant.fields {
+            Fields::Unit => VariantBody::Unit,
+            Fields::Unnamed(unnamed) => {
+                let fields = unnamed
+                    .unnamed
+                    .iter()
+                    .map(|field| {
+                        field
+                            .attrs
+                            .iter()
+                            .find_map(|attr| match &attr.meta {
+                                Meta::List(list) => match list.path.get_ident() {
+                                    Some(ident) => match ident.to_string().as_ref() {
+                                        "capture" => {
+                                            let capture =
+                                                extract_number_literal(list.tokens.clone())
+                                                    .expect("not a number");
+
+                                            Some(TupleArg::Capture(
+                                                capture
+                                                    .base10_parse()
+                                                    .expect("unable to parse capture"),
+                                            ))
+                                        }
+                                        _ => None,
+                                    },
+                                    None => None,
+                                },
+                                _ => None,
+                            })
+                            .expect("no relevant attributes")
+                    })
+                    .collect::<Vec<_>>();
+
+                VariantBody::Tuple(fields)
+            }
+            _ => unimplemented!(),
+        };
+
+        let token_variant = Variant {
+            name: quote! { #name::#variant_name }.to_string(),
+            body,
+        };
+
         for attr in variant.attrs {
             let attr = match attr.meta {
                 Meta::List(list) => list,
-                Meta::NameValue(_) | Meta::Path(_) => continue,
+                _ => continue,
             };
 
             let ident = match attr.path.get_ident() {
@@ -57,9 +99,7 @@ pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream
             let parser = Parser::new(&pattern);
             let t = into_trie(
                 parser.parse().expect("failed to parse"),
-                Variant {
-                    name: quote! { #name::#variant_name }.to_string(),
-                },
+                token_variant.clone(),
             );
 
             trie.merge(t);
@@ -97,12 +137,24 @@ fn extract_string_literal(stream: TokenStream) -> Option<LitStr> {
     None
 }
 
+fn extract_number_literal(stream: TokenStream) -> Option<LitInt> {
+    let mut stream = stream.into_iter();
+    if let Some(TokenTree::Literal(token)) = stream.next() {
+        if stream.next().is_none() {
+            if let Ok(token) = syn::parse_str::<LitInt>(&token.to_string()) {
+                return Some(token);
+            }
+        }
+    }
+
+    None
+}
+
 fn expand(trie: &Trie, root: bool) -> TokenStream {
     if let Some(leaf) = &trie.leaf {
-        let variant = TokenStream::from_str(&leaf.name).expect("failed to reparse variant name");
         if trie.branches.is_empty() {
             // unambiguous branch, only has a leaf so return that variant
-            quote! { Ok(Some(#variant)) }
+            quote! { Ok(Some(#leaf)) }
         } else {
             // ambiguous branch: has both branches and a leaf so we need to peek to see if we
             // should continue lexing or not
@@ -124,12 +176,12 @@ fn expand(trie: &Trie, root: bool) -> TokenStream {
             quote! {
                 let p = match input.peek().copied() {
                     Some(p) => p,
-                    None => return Ok(Some(#variant)),
+                    None => return Ok(Some(#leaf)),
                 };
 
                 match p {
                     #branches
-                    _ => Ok(Some(#variant)),
+                    _ => Ok(Some(#leaf)),
                 }
             }
         }
@@ -387,7 +439,7 @@ mod tests {
         expand,
         parse_tree::into_trie,
         parser::Parser,
-        trie::{self, Trie, Variant},
+        trie::{self, Trie, Variant, VariantBody},
     };
 
     #[test]
@@ -405,6 +457,7 @@ mod tests {
                 Parser::new(pattern).parse().unwrap(),
                 Variant {
                     name: format!("Variant{i}"),
+                    body: VariantBody::Unit,
                 },
             );
             trie.merge(t);
