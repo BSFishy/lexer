@@ -15,7 +15,7 @@ mod parser;
 use parser::Parser;
 
 mod trie;
-use trie::{Branch, GroupOp, GroupableBranch, Trie, TupleArg, Variant, VariantBody};
+use trie::{Branch, GroupOp, Trie, TupleArg, Variant, VariantBody};
 
 #[proc_macro_derive(Lexable, attributes(lex, capture))]
 pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {

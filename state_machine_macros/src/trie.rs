@@ -1,7 +1,6 @@
 use std::{
     collections::{BTreeSet, HashMap},
     hash::{Hash, Hasher},
-    mem::transmute,
     ops::Deref,
     str::FromStr,
 };
