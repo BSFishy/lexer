@@ -17,7 +17,7 @@ pub enum LexError {
     #[error("unkown input: {0}")]
     UnknownInput(String),
     #[error("io error: {0}")]
-    IoError(#[from] io::Error),
+    Io(#[from] io::Error),
 }
 
 #[derive(Debug, Lexable)]
