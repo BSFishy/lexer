@@ -12,6 +12,10 @@ members = [
   "utf8_reader",
 ]
 
+[profile.profiling]
+inherits = "release"
+debug = true
+
 [workspace.dependencies]
 anyhow = "1"
 common = { path = "common" }

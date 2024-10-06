@@ -22,6 +22,8 @@
             buildInputs = [
               pkgs.rustup
               pkgs.cargo-fuzz
+              pkgs.valgrind
+              pkgs.kcachegrind
               pkgs.gnuplot
             ];
           };

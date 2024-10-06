@@ -12,7 +12,7 @@ libfuzzer-sys = "0.4"
 state_machine.workspace = true
 
 [[bin]]
-name = "state_machine"
+name = "state_machine_fuzz"
 path = "fuzz_targets/state_machine.rs"
 test = false
 doc = false
