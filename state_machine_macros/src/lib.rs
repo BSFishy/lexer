@@ -115,7 +115,7 @@ pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream
     let expanded = quote! {
         impl #impl_generics crate::Lexable for #name #ty_generics #where_clause {
             #[inline]
-            fn lex(input: &mut ::std::iter::Peekable<impl Iterator<Item = char>>) -> Result<Option<Self>, crate::LexError> {
+            fn lex(input: &mut ::std::iter::Peekable<impl Iterator<Item = ::std::result::Result<char, ::std::io::Error>>>) -> Result<Option<Self>, crate::LexError> {
                 let mut current_text = String::new();
 
                 #expanded
@@ -179,9 +179,14 @@ fn expand(trie: &Trie, root: bool) -> TokenStream {
             quote! {
                 #start
 
-                let p = match input.peek().copied() {
+                let p = match input.peek() {
                     Some(p) => p,
                     None => return Ok(Some(#leaf)),
+                };
+
+                let p = match p {
+                    Ok(p) => *p,
+                    Err(_) => return Err(crate::LexError::from(input.next().unwrap().unwrap_err())),
                 };
 
                 match p {
@@ -220,6 +225,11 @@ fn expand(trie: &Trie, root: bool) -> TokenStream {
             let c = match input.next() {
                 Some(c) => c,
                 None => return #return_value,
+            };
+
+            let c = match c {
+                Ok(c) => c,
+                Err(err) => return Err(crate::LexError::from(err)),
             };
 
             current_text.push(c);
@@ -327,9 +337,14 @@ fn condition_to_tokens(
                 };
 
                 quote! {
-                    let p = match input.peek().copied() {
+                    let p = match input.peek() {
                         Some(p) => p,
                         None => return Err(crate::LexError::UnknownInput(current_text)),
+                    };
+
+                    let p = match p {
+                        Ok(p) => *p,
+                        Err(_) => return Err(crate::LexError::from(input.next().unwrap().unwrap_err())),
                     };
 
                     match p {
@@ -360,6 +375,11 @@ fn condition_to_tokens(
                                             None => return Err(crate::LexError::UnknownInput(current_text)),
                                         };
 
+                                        let c = match c {
+                                            Ok(c) => c,
+                                            Err(err) => return Err(crate::LexError::from(err)),
+                                        };
+
                                         current_text.push(c);
 
                                         match c {
@@ -377,6 +397,11 @@ fn condition_to_tokens(
                                 None => return Err(crate::LexError::UnknownInput(current_text)),
                             };
 
+                            let c = match c {
+                                Ok(c) => c,
+                                Err(err) => return Err(crate::LexError::from(err)),
+                            };
+
                             current_text.push(c);
 
                             match c {
@@ -391,8 +416,8 @@ fn condition_to_tokens(
                     quote! {
                         #acc
                         #first => {
+                            current_text.push(*p);
                             input.next();
-                            current_text.push(p);
 
                             #rest
                         }
@@ -401,13 +426,16 @@ fn condition_to_tokens(
 
                 quote! {
                     loop {
-                        match input.peek().copied() {
+                        match input.peek() {
                             Some(p) => {
                                 match p {
-                                    #arms
-                                    _ => {
-                                        break
+                                    Ok(p) => match *p {
+                                        #arms
+                                        _ => {
+                                            break
+                                        }
                                     }
+                                    Err(_) => return Err(crate::LexError::from(input.next().unwrap().unwrap_err())),
                                 }
                             }
                             None => {

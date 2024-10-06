@@ -1,4 +1,7 @@
-use std::{io::Read, iter::Peekable};
+use std::{
+    io::{self, Read},
+    iter::Peekable,
+};
 
 use thiserror::Error;
 
@@ -11,6 +14,8 @@ use utf8_reader::Utf8Reader;
 pub enum LexError {
     #[error("unkown input: {0}")]
     UnknownInput(String),
+    #[error("io error: {0}")]
+    IoError(#[from] io::Error),
 }
 
 #[derive(Debug, Lexable)]
@@ -71,25 +76,15 @@ pub enum Token {
     LT,
 }
 
-struct Reader<T: Read>(Utf8Reader<T>);
-
-impl<T: Read> Iterator for Reader<T> {
-    type Item = char;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|c| c.unwrap())
-    }
-}
-
 pub struct Lexer<T: Read> {
-    reader: Peekable<Reader<T>>,
+    reader: Peekable<Utf8Reader<T>>,
     errored: bool,
 }
 
 impl<T: Read> Lexer<T> {
     pub fn new(reader: T) -> Self {
         Self {
-            reader: Reader(Utf8Reader::new(reader)).peekable(),
+            reader: Utf8Reader::new(reader).peekable(),
             errored: false,
         }
     }
