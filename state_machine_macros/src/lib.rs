@@ -1,6 +1,8 @@
+use std::collections::BTreeSet;
+
 use proc_macro2::{Span, TokenStream, TokenTree};
 use quote::{quote, ToTokens};
-use syn::{parse_macro_input, Data, DeriveInput, Fields, LitChar, LitInt, LitStr, Meta};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, LitChar, LitInt, LitStr, Meta};
 
 mod dict;
 
@@ -13,7 +15,7 @@ mod parser;
 use parser::Parser;
 
 mod trie;
-use trie::{Branch, Trie, TupleArg, Variant, VariantBody};
+use trie::{Branch, GroupOp, GroupableBranch, Trie, TupleArg, Variant, VariantBody};
 
 #[proc_macro_derive(Lexable, attributes(lex, capture))]
 pub fn derive_lexable(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
@@ -158,14 +160,15 @@ fn expand(trie: &Trie, root: bool) -> TokenStream {
         } else {
             // ambiguous branch: has both branches and a leaf so we need to peek to see if we
             // should continue lexing or not
+            let (start, end) = ops_to_tokens(&trie.ops());
             let branches = trie
                 .branches
                 .iter()
                 .fold(TokenStream::new(), |acc, (k, v)| {
-                    let k = to_condition(k);
+                    let k = to_condition(&k.branch);
                     let v = expand(v, false);
 
-                    let branch = condition_to_tokens(k, &v, true);
+                    let branch = condition_to_tokens(k, &v, &end, true);
 
                     quote! {
                         #acc
@@ -174,6 +177,8 @@ fn expand(trie: &Trie, root: bool) -> TokenStream {
                 });
 
             quote! {
+                #start
+
                 let p = match input.peek().copied() {
                     Some(p) => p,
                     None => return Ok(Some(#leaf)),
@@ -190,14 +195,15 @@ fn expand(trie: &Trie, root: bool) -> TokenStream {
         unreachable!();
     } else {
         // branches but no leaf: just consume next char
+        let (start, end) = ops_to_tokens(&trie.ops());
         let branches = trie
             .branches
             .iter()
             .map(|(k, v)| {
-                let k = to_condition(k);
+                let k = to_condition(&k.branch);
                 let v = expand(v, false);
 
-                condition_to_tokens(k, &v, false)
+                condition_to_tokens(k, &v, &end, false)
             })
             .collect::<Vec<_>>();
         let branches = flatten(branches);
@@ -209,6 +215,8 @@ fn expand(trie: &Trie, root: bool) -> TokenStream {
         };
 
         quote! {
+            #start
+
             let c = match input.next() {
                 Some(c) => c,
                 None => return #return_value,
@@ -234,9 +242,51 @@ fn flatten(streams: Vec<TokenStream>) -> TokenStream {
     out
 }
 
+fn ops_to_tokens(ops: &BTreeSet<&GroupOp>) -> (TokenStream, TokenStream) {
+    ops.iter().fold(
+        (TokenStream::new(), TokenStream::new()),
+        |(acc_start, acc_end), op| {
+            let (start, end) = match op {
+                GroupOp::Start(i) => (
+                    {
+                        let ident_start =
+                            Ident::new(&format!("capture{}_start", i), Span::call_site());
+                        let ident_end = Ident::new(&format!("capture{}_end", i), Span::call_site());
+
+                        quote! {
+                            let #ident_start = current_text.len();
+                            let mut #ident_end = #ident_start;
+                        }
+                    },
+                    TokenStream::new(),
+                ),
+                GroupOp::Stop(i) => (TokenStream::new(), {
+                    let ident = Ident::new(&format!("capture{}_end", i), Span::call_site());
+
+                    quote! {
+                        #ident = current_text.len();
+                    }
+                }),
+            };
+
+            (
+                quote! {
+                    #acc_start
+                    #start
+                },
+                quote! {
+                    #acc_end
+                    #end
+                },
+            )
+        },
+    )
+}
+
 fn condition_to_tokens(
     (map, expansion): (Vec<Vec<TokenStream>>, bool),
     child: &TokenStream,
+    end_op: &TokenStream,
     peeking: bool,
 ) -> TokenStream {
     let streams = map
@@ -265,6 +315,7 @@ fn condition_to_tokens(
                             #el => {}
                         }
                     });
+
                 let arms = quote! {
                     #aarms
                     #e => {
@@ -291,7 +342,7 @@ fn condition_to_tokens(
             let expanded = if expansion {
                 let arms = map.iter().fold(TokenStream::new(), |acc, conds| {
                     let first = match conds.first() {
-                        Some(first) => quote! { #first },
+                        Some(first) => first.clone(),
                         None => TokenStream::new(),
                     };
 
@@ -354,10 +405,14 @@ fn condition_to_tokens(
                             Some(p) => {
                                 match p {
                                     #arms
-                                    _ => break,
+                                    _ => {
+                                        break
+                                    }
                                 }
                             }
-                            None => break,
+                            None => {
+                                break
+                            }
                         }
                     }
                 }
@@ -370,6 +425,7 @@ fn condition_to_tokens(
                     #peeked
                     #prefix
                     #expanded
+                    #end_op
                     #child
                 }
             }
@@ -413,13 +469,13 @@ fn to_condition(branch: &Branch) -> (Vec<Vec<TokenStream>>, bool) {
             }]],
             false,
         ),
-        Branch::Expand(e) => (to_condition(e).0, true),
+        Branch::Expand(e) => (to_condition(&e.as_ref().branch).0, true),
         Branch::Options(o) => (
             o.iter()
                 .map(|options| {
                     options
                         .iter()
-                        .flat_map(|option| to_condition(option).0)
+                        .flat_map(|option| to_condition(&option.branch).0)
                         .flatten()
                         .collect::<Vec<_>>()
                 })

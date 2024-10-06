@@ -1,4 +1,10 @@
-use std::{collections::HashMap, ops::Deref, str::FromStr};
+use std::{
+    collections::{BTreeSet, HashMap},
+    hash::{Hash, Hasher},
+    mem::transmute,
+    ops::Deref,
+    str::FromStr,
+};
 
 use itertools::Itertools;
 use proc_macro2::{Span, TokenStream};
@@ -13,8 +19,41 @@ pub enum Branch {
     Sequence(char),
     NegativeChar(char),
     NegativeSequence(char),
-    Expand(Box<Branch>),
-    Options(Vec<Vec<Branch>>),
+    Expand(Box<GroupableBranch>),
+    Options(Vec<Vec<GroupableBranch>>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum GroupOp {
+    Start(usize),
+    Stop(usize),
+}
+
+#[derive(Debug, Clone, Eq)]
+pub struct GroupableBranch {
+    pub(crate) branch: Branch,
+    pub(crate) op: BTreeSet<GroupOp>,
+}
+
+impl Hash for GroupableBranch {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.branch.hash(state);
+    }
+}
+
+impl PartialEq for GroupableBranch {
+    fn eq(&self, other: &Self) -> bool {
+        self.branch == other.branch
+    }
+}
+
+impl From<Branch> for GroupableBranch {
+    fn from(value: Branch) -> Self {
+        GroupableBranch {
+            branch: value,
+            op: BTreeSet::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -35,6 +74,7 @@ pub enum TupleArg {
 }
 
 impl ToTokens for Variant {
+    #[allow(unstable_name_collisions)]
     fn to_tokens(&self, tokens: &mut TokenStream) {
         let name = TokenStream::from_str(&self.name).expect("failed to reparse variant name");
         let initializer = match &self.body {
@@ -75,7 +115,7 @@ impl ToTokens for Variant {
 
 #[derive(Debug, Clone)]
 pub struct Trie {
-    pub(crate) branches: OrderedDict<Branch, Trie>,
+    pub(crate) branches: OrderedDict<GroupableBranch, Trie>,
     pub(crate) leaf: Option<Variant>,
 }
 
@@ -87,11 +127,61 @@ impl Trie {
         }
     }
 
-    pub fn insert(&mut self, branch: Branch) -> &mut Trie {
+    pub fn ops(&self) -> BTreeSet<&GroupOp> {
+        let mut out = BTreeSet::new();
+
+        self.branches.keys().for_each(|key| {
+            key.op.iter().for_each(|op| {
+                out.insert(op);
+            });
+        });
+
+        out
+    }
+
+    pub fn insert(&mut self, branch: GroupableBranch) -> &mut Trie {
         self.branches.get_mut_or_insert_with(branch, Trie::new)
     }
 
-    pub fn search(&mut self, branches: &[Branch]) -> &mut Trie {
+    fn clone_branch_group_ops(&mut self, branch: &GroupableBranch) {
+        let subbranch = if let Branch::Expand(expand) = &branch.branch {
+            &expand.branch
+        } else {
+            &branch.branch
+        };
+
+        for key in self.branches.keys.iter_mut() {
+            match &key.branch {
+                Branch::Char(c) => match subbranch {
+                    Branch::Sequence(k) => {
+                        if sequence(*k, *c) {
+                            branch.op.iter().for_each(|op| {
+                                key.op.insert(op.clone());
+                            });
+                        }
+                    }
+                    Branch::NegativeChar(k) => {
+                        if *c != *k {
+                            branch.op.iter().for_each(|op| {
+                                key.op.insert(op.clone());
+                            });
+                        }
+                    }
+                    Branch::NegativeSequence(k) => {
+                        if !sequence(*k, *c) {
+                            branch.op.iter().for_each(|op| {
+                                key.op.insert(op.clone());
+                            });
+                        }
+                    }
+                    _ => panic!("???"),
+                },
+                _ => continue,
+            }
+        }
+    }
+
+    pub fn search(&mut self, branches: &[GroupableBranch]) -> &mut Trie {
         if branches.is_empty() {
             return self;
         }
@@ -134,7 +224,7 @@ impl Trie {
     fn expand_non_trivial(&mut self) {
         let mut non_trivial_branches = HashMap::new();
         for (key, non_trivial) in self.branches.iter() {
-            match key {
+            match key.branch {
                 Branch::Sequence(_) | Branch::NegativeChar(_) | Branch::NegativeSequence(_) => {
                     non_trivial_branches.insert(key.clone(), non_trivial.clone());
                 }
@@ -142,13 +232,17 @@ impl Trie {
             }
         }
 
+        for key in non_trivial_branches.keys() {
+            self.clone_branch_group_ops(key);
+        }
+
         for (c, trivial) in self.branches.map.iter_mut() {
-            match c {
+            match c.branch {
                 Branch::Char(c) => {
-                    for (k, non_trivial) in non_trivial_branches.iter() {
-                        match k {
+                    for (ntk, non_trivial) in non_trivial_branches.iter() {
+                        match ntk.branch {
                             Branch::Sequence(k) => {
-                                if sequence(*k, *c) {
+                                if sequence(k, c) {
                                     trivial.clone(non_trivial);
                                 }
                             }
@@ -158,7 +252,7 @@ impl Trie {
                                 }
                             }
                             Branch::NegativeSequence(k) => {
-                                if !sequence(*k, *c) {
+                                if !sequence(k, c) {
                                     trivial.clone(non_trivial);
                                 }
                             }
@@ -175,7 +269,7 @@ impl Trie {
     fn expand_expansions(&mut self) {
         let mut expansion_branches = HashMap::new();
         for (key, non_trivial) in self.branches.iter() {
-            match key {
+            match key.branch {
                 Branch::Expand(_) => {
                     expansion_branches.insert(key.clone(), non_trivial.clone());
                 }
@@ -183,14 +277,18 @@ impl Trie {
             }
         }
 
+        for key in expansion_branches.keys() {
+            self.clone_branch_group_ops(key);
+        }
+
         for (c, trivial) in self.branches.map.iter_mut() {
-            match c {
+            match c.branch {
                 Branch::Char(c) => {
                     for (k, expansion) in expansion_branches.iter() {
-                        match k {
-                            Branch::Expand(e) => match e.deref() {
+                        match &k.branch {
+                            Branch::Expand(e) => match e.deref().branch {
                                 Branch::Sequence(s) => {
-                                    if sequence(*s, *c) {
+                                    if sequence(s, c) {
                                         trivial.insert(k.clone()).merge(expansion.clone());
 
                                         if trivial.leaf.is_none() {
@@ -212,7 +310,7 @@ impl Trie {
                                     }
                                 }
                                 Branch::NegativeSequence(s) => {
-                                    if !sequence(*s, *c) {
+                                    if !sequence(s, c) {
                                         trivial.insert(k.clone()).merge(expansion.clone());
 
                                         if trivial.leaf.is_none() {

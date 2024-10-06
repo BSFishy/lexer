@@ -4,7 +4,7 @@ use std::{collections::HashMap, hash::Hash};
 #[derive(Debug, Clone)]
 pub struct OrderedDict<K, V> {
     pub(crate) map: HashMap<K, V>,
-    keys: Vec<K>,
+    pub(crate) keys: Vec<K>,
 }
 
 impl<K: Eq + Hash + Clone, V> OrderedDict<K, V> {

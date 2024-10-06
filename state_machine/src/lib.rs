@@ -16,7 +16,7 @@ pub enum LexError {
 #[derive(Debug, Lexable)]
 pub enum Token {
     #[lex("//([^\n]*)")]
-    Comment,
+    Comment(#[capture(1)] String),
     #[lex("/")]
     Division,
     #[lex("func")]
@@ -36,7 +36,7 @@ pub enum Token {
     #[lex("@a@A*")]
     Identifier(#[capture(0)] String),
     #[lex(r#""(([^"]|\\")*)""#)]
-    String,
+    String(#[capture(1)] String),
     #[lex("(\n|\r)")]
     NewLine,
     #[lex(" ")]
@@ -64,7 +64,7 @@ pub enum Token {
     #[lex("=")]
     Equals,
     #[lex("@0@0*")]
-    Number,
+    Number(#[capture(0)] String),
     #[lex(">")]
     GT,
     #[lex("<")]

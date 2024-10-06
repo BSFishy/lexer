@@ -21,12 +21,14 @@ pub enum ParseError {
 
 pub struct Parser<'a> {
     lexer: Peekable<Lexer<'a>>,
+    group_count: usize,
 }
 
 impl Parser<'_> {
     pub fn new(pattern: &str) -> Parser<'_> {
         Parser {
             lexer: Lexer::new(pattern).peekable(),
+            group_count: 0,
         }
     }
 
@@ -127,7 +129,11 @@ impl Parser<'_> {
 
         match options.len() {
             0 => Err(ParseError::EmptyGroup),
-            1 => Ok(Unit::Group(options[0].clone())),
+            1 => {
+                self.group_count += 1;
+
+                Ok(Unit::Group(self.group_count, options[0].clone()))
+            }
             _ => Ok(Unit::Options(options)),
         }
     }
