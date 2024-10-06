@@ -3,6 +3,17 @@ use std::fmt;
 use console::style;
 
 pub const CODE: &str = include_str!("../../example.lang");
+pub const BENCH_LEN: usize = 10;
+
+pub fn code(len: usize) -> String {
+    let mut out = String::new();
+
+    for _ in 0..len {
+        out.push_str(CODE);
+    }
+
+    out
+}
 
 #[macro_export]
 macro_rules! test {

@@ -18,7 +18,13 @@
       in
       {
         devShells = {
-          default = pkgs.mkShell { buildInputs = [ pkgs.rustup ]; };
+          default = pkgs.mkShell {
+            buildInputs = [
+              pkgs.rustup
+              pkgs.cargo-fuzz
+              pkgs.gnuplot
+            ];
+          };
         };
       }
     );

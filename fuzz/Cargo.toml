@@ -1,0 +1,19 @@
+[package]
+name = "lexer-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+state_machine.workspace = true
+
+[[bin]]
+name = "state_machine"
+path = "fuzz_targets/state_machine.rs"
+test = false
+doc = false
+bench = false

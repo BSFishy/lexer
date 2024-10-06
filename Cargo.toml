@@ -3,6 +3,7 @@ resolver = "2"
 members = [
   "backtracking",
   "common",
+  "fuzz",
   "pattern",
   "pattern_macros",
   "recursive_descent",
@@ -12,15 +13,16 @@ members = [
 ]
 
 [workspace.dependencies]
-anyhow = "1.0"
+anyhow = "1"
 common = { path = "common" }
 criterion = { version = "0.5", features = ["html_reports"] }
 console = "0.15"
 itertools = "0.13"
 pattern_macros = { path = "pattern_macros" }
-proc-macro2 = "1.0"
-quote = "1.0"
+proc-macro2 = "1"
+quote = "1"
+state_machine = { path = "state_machine" }
 state_machine_macros = { path = "state_machine_macros" }
-syn = "2.0"
-thiserror = "1.0"
+syn = "2"
+thiserror = "1"
 utf8_reader = { path = "utf8_reader" }

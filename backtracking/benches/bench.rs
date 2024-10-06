@@ -1,6 +1,6 @@
 use backtracking::{LexError, Lexer};
-use common::{Token, CODE};
-use criterion::{criterion_group, criterion_main, Criterion};
+use common::{code, Token, BENCH_LEN};
+use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
 use std::hint::black_box;
 
 fn lex(text: &str) -> Vec<Result<Token, LexError>> {
@@ -8,7 +8,14 @@ fn lex(text: &str) -> Vec<Result<Token, LexError>> {
 }
 
 fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("backtracking lex", |b| b.iter(|| lex(black_box(CODE))));
+    let mut group = c.benchmark_group("backtracking");
+    for len in 0..=BENCH_LEN {
+        let input = black_box(code(len));
+        group.throughput(Throughput::Bytes(input.as_bytes().len() as u64));
+        group.bench_with_input(BenchmarkId::from_parameter(len), &input, |b, input| {
+            b.iter(|| black_box(lex(black_box(input))))
+        });
+    }
 }
 
 criterion_group!(benches, criterion_benchmark);
