@@ -1,8 +1,10 @@
 use std::{
+    fmt,
     io::{self, Read},
     iter::Peekable,
 };
 
+use console::style;
 use thiserror::Error;
 
 mod derive;
@@ -74,6 +76,40 @@ pub enum Token {
     GT,
     #[lex("<")]
     LT,
+}
+
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Token::Comment(contents) => write!(f, "{}", style(format!("//{}", contents)).dim()),
+            Token::Identifier(ident) => write!(f, "{}", style(ident).blue()),
+            Token::NewLine => writeln!(f),
+            Token::Space => write!(f, " "),
+            Token::Func => write!(f, "{}", style("func").red()),
+            Token::Return => write!(f, "{}", style("return").red()),
+            Token::Let => write!(f, "{}", style("let").red()),
+            Token::If => write!(f, "{}", style("if").red()),
+            Token::Else => write!(f, "{}", style("else").red()),
+            Token::While => write!(f, "{}", style("while").red()),
+            Token::For => write!(f, "{}", style("for").red()),
+            Token::String(s) => write!(f, "{}", style(format!("\"{s}\"")).green()),
+            Token::Number(n) => write!(f, "{}", style(n).magenta()),
+            Token::LParen => write!(f, "{}", style("(").cyan()),
+            Token::RParen => write!(f, "{}", style(")").cyan()),
+            Token::LBrace => write!(f, "{}", style("}").cyan()),
+            Token::RBrace => write!(f, "{}", style("{").cyan()),
+            Token::Semicolon => write!(f, "{}", style(";").cyan()),
+            Token::Add => write!(f, "{}", style("+").cyan()),
+            Token::Sub => write!(f, "{}", style("-").cyan()),
+            Token::AddAssign => write!(f, "{}", style("+=").cyan()),
+            Token::SubAssign => write!(f, "{}", style("-=").cyan()),
+            Token::Equals => write!(f, "{}", style("=").cyan()),
+            Token::Comma => write!(f, "{}", style(",").cyan()),
+            Token::GT => write!(f, "{}", style(">").cyan()),
+            Token::LT => write!(f, "{}", style("<").cyan()),
+            Token::Division => write!(f, "{}", style("=").cyan()),
+        }
+    }
 }
 
 pub struct Lexer<T: Read> {

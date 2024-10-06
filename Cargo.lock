@@ -499,6 +499,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "common",
+ "console",
  "criterion",
  "state_machine_macros",
  "thiserror",

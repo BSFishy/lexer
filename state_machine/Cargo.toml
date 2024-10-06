@@ -13,6 +13,7 @@ criterion.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+console.workspace = true
 state_machine_macros.workspace = true
 thiserror.workspace = true
 utf8_reader.workspace = true
