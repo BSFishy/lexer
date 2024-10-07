@@ -129,6 +129,7 @@ impl<T: Read> Lexer<T> {
 impl<T: Read> Iterator for Lexer<T> {
     type Item = Result<Token, LexError>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         if self.errored {
             None
